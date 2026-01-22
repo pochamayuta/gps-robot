@@ -3,51 +3,47 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>GPS to M5Stack Controller</title>
+    <title>GPS Link</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #f0f0f0; padding: 20px; }
-        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        button { 
-            background: #007AFF; color: white; border: none; padding: 20px 40px; 
-            font-size: 20px; border-radius: 50px; cursor: pointer; width: 100%;
-            margin-bottom: 20px;
-        }
-        #status { font-size: 14px; color: #666; margin-top: 10px; }
-        .data-box { background: #eee; padding: 10px; border-radius: 10px; margin-top: 10px; font-family: monospace; }
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: #fafafa; }
+        button { background: #007AFF; color: white; border: none; padding: 20px; font-size: 1.2rem; border-radius: 12px; width: 100%; cursor: pointer; }
+        #status { margin: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Robot GPS Link</h2>
-        <p>iPhoneのテザリングをONにして開始してください</p>
-        <button onclick="startTracking()">Start Tracking</button>
-        <div id="status">Waiting for interaction...</div>
-        <div id="gps-data" class="data-box">---</div>
-    </div>
+    <h2>GPS to Robot</h2>
+    <button onclick="startTracking()">Start Tracking</button>
+    <div id="status">Ready</div>
+    <div id="data">---</div>
 
     <script>
-    let lastSentTime = 0;
-    const M5_IP = "172.20.10.10"; // あなたのM5StackのIPアドレス
+    const M5_IP = "172.20.10.10"; // ★ここを今のIPに固定しました
 
     function startTracking() {
         if (!navigator.geolocation) {
-            alert("GPSをサポートしていません");
+            alert("GPS非対応です");
             return;
         }
-        document.getElementById('status').innerText = "Tracking started...";
+        document.getElementById('status').innerText = "送信中...";
 
         navigator.geolocation.watchPosition(position => {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
-            document.getElementById('gps-data').innerHTML = `Lat: ${lat.toFixed(6)}<br>Lon: ${lon.toFixed(6)}`;
+            document.getElementById('data').innerText = `Lat: ${lat}\nLon: ${lon}`;
 
-            const now = Date.now();
-            if (now - lastSentTime > 500) { // 0.5秒ごとに送信
-                const url = `http://${M5_IP}/gps?lat=${lat}&lon=${lon}`;
-                fetch(url, { mode: 'no-cors' }) // セキュリティ制限回避
-                lastSentTime = now;
-            }
-        }, err => alert("GPS Error: " + err.message), { enableHighAccuracy: true });
+            const url = `http://${M5_IP}/gps?lat=${lat}&lon=${lon}`;
+            
+            // セキュリティ制限（Mixed Content）を回避するための no-cors
+            fetch(url, { mode: 'no-cors' })
+                .then(() => {
+                    document.getElementById('status').innerText = "M5へ送信成功！";
+                    document.getElementById('status').style.color = "green";
+                })
+                .catch(err => {
+                    document.getElementById('status').innerText = "送信エラー";
+                    document.getElementById('status').style.color = "red";
+                });
+        }, err => alert("GPS取得エラー"), { enableHighAccuracy: true });
     }
     </script>
 </body>
