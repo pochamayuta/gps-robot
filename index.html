@@ -10,43 +10,45 @@
         button { 
             background: #007AFF; color: white; border: none; padding: 20px 40px; 
             font-size: 20px; border-radius: 50px; cursor: pointer; width: 100%;
-            margin-bottom: 20px; transition: background 0.3s;
+            margin-bottom: 20px;
         }
-        button:active { background: #0056b3; }
-        #status { font-size: 14px; color: #666; margin-top: 10px; line-height: 1.6; }
+        #status { font-size: 14px; color: #666; margin-top: 10px; }
         .data-box { background: #eee; padding: 10px; border-radius: 10px; margin-top: 10px; font-family: monospace; }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>Robot GPS Link</h2>
-        <p>M5StackのWi-Fiに接続してから開始してください</p>
-        
+        <p>iPhoneのテザリングをONにして開始してください</p>
         <button onclick="startTracking()">Start Tracking</button>
-
         <div id="status">Waiting for interaction...</div>
         <div id="gps-data" class="data-box">---</div>
     </div>
 
     <script>
     let lastSentTime = 0;
+    const M5_IP = "172.20.10.9"; // あなたのM5StackのIPアドレス
 
     function startTracking() {
         if (!navigator.geolocation) {
-            alert("お使いのブラウザはGPSをサポートしていません");
+            alert("GPSをサポートしていません");
             return;
         }
+        document.getElementById('status').innerText = "Tracking started...";
 
-        document.getElementById('status').innerText = "Tracking started. Position updates in real-time.";
-
-        // 高精度な位置情報を継続的に取得
         navigator.geolocation.watchPosition(position => {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
-            const accuracy = position.coords.accuracy;
+            document.getElementById('gps-data').innerHTML = `Lat: ${lat.toFixed(6)}<br>Lon: ${lon.toFixed(6)}`;
 
-            // 画面表示を更新
-            document.getElementById('gps-data').innerHTML = 
-                `Lat: ${lat.toFixed(6)}<br>Lon: ${lon.toFixed(6)}<br>Acc: ±${Math.round(accuracy)}m`;
-
-            // 通信頻
+            const now = Date.now();
+            if (now - lastSentTime > 500) { // 0.5秒ごとに送信
+                const url = `http://${M5_IP}/gps?lat=${lat}&lon=${lon}`;
+                fetch(url, { mode: 'no-cors' }) // セキュリティ制限回避
+                lastSentTime = now;
+            }
+        }, err => alert("GPS Error: " + err.message), { enableHighAccuracy: true });
+    }
+    </script>
+</body>
+</html>
